@@ -7,6 +7,7 @@ from langchain_neo4j import Neo4jGraph
 from langchain_openai import ChatOpenAI
 from langchain_experimental.graph_transformers import LLMGraphTransformer
 from langchain_community.graphs.graph_document import Node, Relationship
+from pyvis.network import Network
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -98,12 +99,38 @@ for chunk in chunks:
     # add the graph documents to the graph
     graph.add_graph_documents(graph_docs)
 
-# Create the vector index
-graph.query("""
-    CREATE VECTOR INDEX `chunkVector`
-    IF NOT EXISTS
-    FOR (c: Chunk) ON (c.textEmbedding)
-    OPTIONS {indexConfig: {
-    `vector.dimensions`: 1536,
-    `vector.similarity_function`: 'cosine'
-    }};""")
+# Fetch all nodes and relationships
+result = graph.query("""
+    MATCH (n)-[r]->(m)
+    RETURN n, r, m
+""")
+
+# Create a Pyvis Network
+net = Network(notebook=False, height="750px", width="100%", bgcolor="#222222", font_color="white")
+
+# Add nodes and edges to the Pyvis network
+added_nodes = set()
+
+for record in result:
+    node_1 = record['n']
+    node_2 = record['m']
+    relationship = record['r']
+
+    # Add node_1 if not already added
+    if node_1['id'] not in added_nodes:
+        net.add_node(node_1['id'], label=f"{node_1['id']} ({node_1.get('type', 'Node')})", title=str(node_1))
+        added_nodes.add(node_1['id'])
+
+    # Add node_2 if not already added
+    if node_2['id'] not in added_nodes:
+        net.add_node(node_2['id'], label=f"{node_2['id']} ({node_2.get('type', 'Node')})", title=str(node_2))
+        added_nodes.add(node_2['id'])
+
+    # Add edge
+    net.add_edge(node_1['id'], node_2['id'], label=relationship.type)
+
+output_dir = "graph_visualisation.html"
+net.write_html(output_dir)
+
+webbrowser.open("file://" + output_dir)
+print(f"Interactive graph saved as {output_dir}")
