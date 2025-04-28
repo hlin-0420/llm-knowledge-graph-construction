@@ -51,6 +51,7 @@ cypher_chain = GraphCypherQAChain.from_llm(
     graph=graph,
     cypher_prompt=cypher_generation_prompt,
     verbose=True,
+    exclude_types=["Session", "Message", "LAST_MESSAGE", "NEXT"],
     allow_dangerous_requests=True
 )
 
