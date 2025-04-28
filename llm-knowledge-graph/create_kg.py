@@ -31,6 +31,8 @@ graph = Neo4jGraph(
 
 doc_transformer = LLMGraphTransformer(
     llm=llm,
+    allowed_nodes = ["Technology", "Concept", "Skill", "Event", "Person", "Object"],
+    allowed_relationships=["USES", "HAS", "IS", "AT", "KNOWS"],
     )
 
 # Load and split the documents
