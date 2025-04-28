@@ -28,6 +28,16 @@ Always use case insensitive search when matching strings.
 Schema:
 {schema}
 
+Examples:
+# Use case insensitive matching for entity ids
+MATCH (c:Chunk)-[:HAS_ENTITY]->(e)
+WHERE e.id =~ '(?i)entityName'
+
+# Find documents that reference entities
+MATCH (d:Document)<-[:PART_OF]-(:Chunk)-[:HAS_ENTITY]->(e)
+WHERE e.id =~ '(?i)entityName'
+RETURN d
+
 The question is:
 {question}"""
 
