@@ -8,6 +8,11 @@ from langchain_openai import ChatOpenAI
 from langchain_experimental.graph_transformers import LLMGraphTransformer
 from langchain_community.graphs.graph_document import Node, Relationship
 from pyvis.network import Network
+import webbrowser
+from bs4 import XMLParsedAsHTMLWarning
+import warnings
+
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -105,32 +110,45 @@ result = graph.query("""
     RETURN n, r, m
 """)
 
+if result:
+    print("Available keys in the first record:", result[0].keys())
+    print("Example record values:", result[0])
+else:
+    print("No results found in the graph query.")
+
 # Create a Pyvis Network
 net = Network(notebook=False, height="750px", width="100%", bgcolor="#222222", font_color="white")
 
 # Add nodes and edges to the Pyvis network
 added_nodes = set()
 
-for record in result:
+for idx, record in enumerate(result):
     node_1 = record['n']
     node_2 = record['m']
     relationship = record['r']
 
+    # Safe fallback to internal Neo4j node ID if 'id' is missing
+    node_1_id = node_1.get('id') or f"node1_{idx}"
+    node_1_type = node_1.get('type', 'Node')
+
+    node_2_id = node_2.get('id') or f"node2_{idx}"
+    node_2_type = node_2.get('type', 'Node')
+
     # Add node_1 if not already added
-    if node_1['id'] not in added_nodes:
-        net.add_node(node_1['id'], label=f"{node_1['id']} ({node_1.get('type', 'Node')})", title=str(node_1))
-        added_nodes.add(node_1['id'])
+    if node_1_id not in added_nodes:
+        net.add_node(node_1_id, label=f"{node_1_id} ({node_1_type})", title=str(node_1))
+        added_nodes.add(node_1_id)
 
     # Add node_2 if not already added
-    if node_2['id'] not in added_nodes:
-        net.add_node(node_2['id'], label=f"{node_2['id']} ({node_2.get('type', 'Node')})", title=str(node_2))
-        added_nodes.add(node_2['id'])
+    if node_2_id not in added_nodes:
+        net.add_node(node_2_id, label=f"{node_2_id} ({node_2_type})", title=str(node_2))
+        added_nodes.add(node_2_id)
 
-    # Add edge
-    net.add_edge(node_1['id'], node_2['id'], label=relationship.type)
+    net.add_edge(node_1_id, node_2_id)
 
+# Save and open HTML visualisation
 output_dir = "graph_visualisation.html"
 net.write_html(output_dir)
 
-webbrowser.open("file://" + output_dir)
+webbrowser.open("file://" + os.path.abspath(output_dir))
 print(f"Interactive graph saved as {output_dir}")
